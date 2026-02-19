@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="그룹 일정 조율 방 — 캘린더에서 가능한 날짜를 투표하세요.">
+    <title>ScheduleSync — 일정 투표</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <!-- Nickname Registration Modal -->
+    <div id="nickname-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-icon">👋</div>
+            <h2 class="modal-title">환영합니다!</h2>
+            <p class="modal-desc">닉네임을 입력하면 투표에 참여할 수 있습니다.<br><span class="hint">본명 사용을 권장합니다.</span></p>
+            <form id="nickname-form">
+                <input type="text" id="nickname-input" class="input-field" placeholder="닉네임을 입력하세요" maxlength="20"
+                    autocomplete="off" required>
+                <button type="submit" class="btn-primary btn-full">
+                    <span class="btn-icon">✅</span>
+                    입장하기
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kicked Modal -->
+    <div id="kicked-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-icon">🚫</div>
+            <h2 class="modal-title">강퇴되었습니다</h2>
+            <p class="modal-desc">방장에 의해 강퇴되어 더 이상 이 방에 참여할 수 없습니다.</p>
+            <a href="/" class="btn-primary btn-full"
+                style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                <span>🏠</span> 홈으로 돌아가기
+            </a>
+        </div>
+    </div>
+
+    <!-- Note Modal -->
+    <div id="note-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card note-modal-card">
+            <div class="note-modal-header">
+                <h2 class="modal-title" id="note-modal-date-title"></h2>
+                <button id="note-modal-close" class="note-close-btn">✕</button>
+            </div>
+            <div class="note-vote-summary" id="note-vote-summary"></div>
+            <div class="note-section">
+                <label class="note-label">📝 비고 (메모)</label>
+                <textarea id="note-textarea" class="note-textarea" placeholder="이 날짜에 대한 메모를 남겨보세요..." maxlength="200"
+                    rows="3"></textarea>
+                <div class="note-char-count"><span id="note-char-count">0</span>/200</div>
+            </div>
+            <button id="note-save-btn" class="btn-primary btn-full">
+                <span class="btn-icon">💾</span>
+                저장
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Room UI -->
+    <div id="room-app" class="room-container" style="display:none;">
+        <nav class="room-nav">
+            <a href="/" class="logo">
+                <span class="logo-icon">📅</span>
+                <span class="logo-text">ScheduleSync</span>
+            </a>
+            <div class="nav-actions">
+                <span id="user-badge" class="user-badge"></span>
+                <span id="admin-badge" class="admin-badge" style="display:none;">👑 방장</span>
+                <button id="copy-link-btn" class="btn-secondary btn-sm">🔗 초대 링크 복사</button>
+            </div>
+        </nav>
+
+        <main class="room-main">
+            <!-- Participants Panel -->
+            <aside class="panel participants-panel">
+                <h3 class="panel-title">👥 참가자 <span id="participant-count" class="badge">0</span></h3>
+                <ul id="participant-list" class="participant-list"></ul>
+
+                <div class="slot-legend">
+                    <div class="slot-legend-title">슬롯 안내</div>
+                    <div class="slot-legend-item"><span class="slot-tag lunch-tag">점심</span> 상단 칸</div>
+                    <div class="slot-legend-item"><span class="slot-tag dinner-tag">저녁</span> 하단 칸</div>
+                </div>
+            </aside>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Calendar Panel -->
+                <section class="panel calendar-panel">
+                    <div class="calendar-header">
+                        <button id="prev-month" class="cal-nav-btn" aria-label="이전 달">‹</button>
+                        <h2 id="calendar-month-label" class="month-label"></h2>
+                        <button id="next-month" class="cal-nav-btn" aria-label="다음 달">›</button>
+                    </div>
+
+                    <!-- Weekday bulk toggles -->
+                    <div class="weekday-toggles">
+                        <span class="toggle-label">요일 일괄 변경:</span>
+                        <div class="toggle-scope-row">
+                            <button class="scope-btn active" data-scope="all">전체</button>
+                            <button class="scope-btn" data-scope="lunch">점심만</button>
+                            <button class="scope-btn" data-scope="dinner">저녁만</button>
+                        </div>
+                        <div class="toggle-row" id="weekday-toggle-row">
+                            <button class="weekday-toggle" data-day="0">일</button>
+                            <button class="weekday-toggle" data-day="1">월</button>
+                            <button class="weekday-toggle" data-day="2">화</button>
+                            <button class="weekday-toggle" data-day="3">수</button>
+                            <button class="weekday-toggle" data-day="4">목</button>
+                            <button class="weekday-toggle" data-day="5">금</button>
+                            <button class="weekday-toggle" data-day="6">토</button>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div class="calendar-grid">
+                        <div class="cal-day-header sun">일</div>
+                        <div class="cal-day-header">월</div>
+                        <div class="cal-day-header">화</div>
+                        <div class="cal-day-header">수</div>
+                        <div class="cal-day-header">목</div>
+                        <div class="cal-day-header">금</div>
+                        <div class="cal-day-header sat">토</div>
+                        <div id="calendar-cells" class="cal-cells-wrapper"></div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="calendar-legend">
+                        <div class="legend-item"><span class="legend-dot green"></span>전원 가능</div>
+                        <div class="legend-item"><span class="legend-dot yellow"></span>조정 가능</div>
+                        <div class="legend-item"><span class="legend-dot red"></span>불가</div>
+                        <div class="legend-item"><span class="legend-dot white"></span>미정</div>
+                        <div class="legend-item"><span class="legend-memo">✏️</span>날짜 메모 (각 날짜 우상단 버튼)</div>
+                    </div>
+                </section>
+
+                <!-- Location Voting Section -->
+                <section class="panel location-panel">
+                    <div class="location-header">
+                        <h3 class="panel-title">📍 장소 투표 <span class="location-hint">중복 선택 가능</span></h3>
+                    </div>
+                    <div id="location-grid" class="location-grid"></div>
+                </section>
+            </div>
+        </main>
+
+        <div id="toast" class="toast" style="display:none;">✅ 초대 링크가 복사되었습니다!</div>
+        <div id="toast-note" class="toast toast-note" style="display:none;">📝 메모가 저장되었습니다!</div>
+        <div id="toast-kick" class="toast toast-kick" style="display:none;">🚫 참가자가 강퇴되었습니다.</div>
+    </div>
+
+    <script src="/js/room.js"></script>
+</body>
+
+</html>
